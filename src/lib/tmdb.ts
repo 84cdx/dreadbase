@@ -1,0 +1,120 @@
+"use server";
+
+import { MediaCardProps } from "@/components/ui/MediaCard";
+
+const TMDB_BASE_URL = "https://api.themoviedb.org/3";
+const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
+const TMDB_BACKDROP_BASE_URL = "https://image.tmdb.org/t/p/original";
+const HORROR_GENRE_ID = "27";
+
+export interface TMDBMovie {
+  id: number;
+  title: string;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  release_date: string;
+  vote_average: number;
+  overview: string;
+  genre_ids: number[];
+}
+
+export interface HeroMovie {
+  id: number;
+  title: string;
+  overview: string;
+  backdropUrl: string;
+  rating: string;
+  year: string;
+}
+
+interface TMDBResponse {
+  page: number;
+  results: TMDBMovie[];
+  total_pages: number;
+  total_results: number;
+}
+
+/**
+ * INTERNAL USE ONLY – Not for Server Action Export
+ * Converts raw TMDB results into local UI props.
+ */
+function mapTMDBMovieToMediaCard(movie: TMDBMovie): MediaCardProps {
+  const year = movie.release_date ? movie.release_date.split("-")[0] : "UNKNOWN";
+  const normalizedRating = movie.vote_average / 2;
+
+  return {
+    title: movie.title,
+    subtitle: `${year} // HORROR`,
+    imageUrl: movie.poster_path ? `${TMDB_IMAGE_BASE_URL}${movie.poster_path}` : "", // Returns empty string if no image available
+    rating: normalizedRating,
+    description: movie.overview,
+    variant: "movie",
+  };
+}
+
+async function fetchTMDB(endpoint: string): Promise<TMDBResponse> {
+  const accessToken = process.env.TMDB_ACCESS_TOKEN;
+  const apiKey = process.env.TMDB_API_KEY;
+  let url = `${TMDB_BASE_URL}${endpoint}`;
+  
+  const headers: Record<string, string> = {
+    accept: "application/json",
+  };
+
+  if (accessToken) {
+    headers["Authorization"] = `Bearer ${accessToken}`;
+  } else if (apiKey) {
+    const separator = url.includes("?") ? "&" : "?";
+    url += `${separator}api_key=${apiKey}`;
+  } else {
+    // If no credentials, we gracefully fail here
+    return { page: 1, results: [], total_pages: 0, total_results: 0 };
+  }
+  
+  try {
+    const res = await fetch(url, {
+      headers,
+      next: { revalidate: 3600 },
+    });
+
+    if (!res.ok) {
+      console.warn(`TMDB Request Failed! Status: ${res.status} | URL: ${url}`);
+      return { page: 1, results: [], total_pages: 0, total_results: 0 };
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error("TMDB Fetch Error:", error);
+    return { page: 1, results: [], total_pages: 0, total_results: 0 };
+  }
+}
+
+// ==========================================
+// PUBLIC SERVER ACTIONS (MUST BE ASYNC)
+// ==========================================
+
+export async function getPopularMovies(): Promise<MediaCardProps[]> {
+  const data = await fetchTMDB(`/discover/movie?with_genres=${HORROR_GENRE_ID}&sort_by=popularity.desc`);
+  return (data?.results || []).map(mapTMDBMovieToMediaCard);
+}
+
+export async function getTopRatedMovies(): Promise<MediaCardProps[]> {
+  const data = await fetchTMDB(`/discover/movie?with_genres=${HORROR_GENRE_ID}&sort_by=vote_average.desc&vote_count.gte=300`);
+  return (data?.results || []).map(mapTMDBMovieToMediaCard);
+}
+
+export async function getPopularHeroMovie(): Promise<HeroMovie | null> {
+  const data = await fetchTMDB(`/discover/movie?with_genres=${HORROR_GENRE_ID}&sort_by=popularity.desc`);
+  const top = data?.results?.[0];
+  if (!top) return null;
+
+  const year = top.release_date ? top.release_date.split("-")[0] : "UNKNOWN";
+  return {
+    id: top.id,
+    title: top.title,
+    overview: top.overview,
+    backdropUrl: top.backdrop_path ? `${TMDB_BACKDROP_BASE_URL}${top.backdrop_path}` : "",
+    rating: (top.vote_average / 2).toFixed(1),
+    year,
+  };
+}
