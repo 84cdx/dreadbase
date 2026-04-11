@@ -1,24 +1,14 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { Header, TopNavItem } from "@/components/layout/Header";
+import { Suspense } from "react";
 import { HeroSection } from "@/components/sections/HeroSection";
 import { CommunityFeed, FeedItemData } from "@/components/sections/CommunityFeed";
-import { MediaCardProps } from "@/components/ui/MediaCard";
 import { MediaCarousel } from "@/components/sections/MediaCarousel";
 import { GameOfDay } from "@/components/sections/GameOfDay";
-import { DetailModal } from "@/components/ui/DetailModal";
+import { BannerSection } from "@/components/ui/BannerSection";
+import { HeroSkeleton, SectionSkeleton, GameOfDaySkeleton } from "@/components/ui/Skeleton";
 
 // Server Actions
-import { getPopularMovies, getTopRatedMovies, getPopularHeroMovie } from "@/lib/tmdb";
-import { getHorrorGames, getGameById, getHighestRatedGames } from "@/lib/igdb";
-
-const TOP_NAV_ITEMS: TopNavItem[] = [
-  { id: "movies", label: "MOVIES", href: "#", isActive: true },
-  { id: "games", label: "GAMES", href: "#", isActive: false },
-  { id: "vault", label: "VAULT", href: "#", isActive: false },
-  { id: "activity", label: "ACTIVITY", href: "#", isActive: false },
-];
+import { getPopularMovies, getTopRatedMovies, getPopularHeroMovies } from "@/lib/tmdb";
+import { getHorrorGames, getGameDetails, getHighestRatedGames } from "@/lib/igdb";
 
 const FEED_ITEMS: FeedItemData[] = [
   {
@@ -39,95 +29,74 @@ const FEED_ITEMS: FeedItemData[] = [
   },
 ];
 
+async function HeroWrapper() {
+  const heroMovies = await getPopularHeroMovies();
+  return <HeroSection movies={heroMovies} />;
+}
+
+async function PopularWrapper() {
+  const movies = await getPopularMovies();
+  return <MediaCarousel title="POPULAR MOVIES THIS WEEK" items={movies} />;
+}
+
+async function TrendingWrapper() {
+  const games = await getHorrorGames();
+  return <MediaCarousel title="TRENDING GAMES" items={games} />;
+}
+
+async function SpotLightWrapper() {
+  const game = await getGameDetails("222341");
+  return <GameOfDay game={game} />;
+}
+
+async function HighestWrapper() {
+  const games = await getHighestRatedGames();
+  return <MediaCarousel title="HIGHEST RATED GAMES" items={games} />;
+}
+
+async function CriticalWrapper() {
+  const movies = await getTopRatedMovies();
+  return <MediaCarousel title="CRITICALLY ACCLAIMED FILMS" items={movies} />;
+}
+
 export default function Home() {
-  const [selectedMedia, setSelectedMedia] = useState<any>(null);
-  const [heroMovie, setHeroMovie] = useState<any>(null);
-  const [popularMovies, setPopularMovies] = useState<MediaCardProps[]>([]);
-  const [topRatedMovies, setTopRatedMovies] = useState<MediaCardProps[]>([]);
-  const [trendingGames, setTrendingGames] = useState<MediaCardProps[]>([]);
-  const [highestRatedGames, setHighestRatedGames] = useState<MediaCardProps[]>([]);
-  const [spotlightGame, setSpotlightGame] = useState<any>(null);
-
-  useEffect(() => {
-    async function loadArchive() {
-      try {
-        const [hero, popM, topM, trendG, topG, spotG] = await Promise.all([
-          getPopularHeroMovie(),
-          getPopularMovies(),
-          getTopRatedMovies(),
-          getHorrorGames(),
-          getHighestRatedGames(),
-          getGameById(222341), // SH2 Remake
-        ]);
-        setHeroMovie(hero);
-        setPopularMovies(popM);
-        setTopRatedMovies(topM);
-        setTrendingGames(trendG);
-        setHighestRatedGames(topG);
-        setSpotlightGame(spotG);
-      } catch (e) {
-        console.error("Archive Access Error:", e);
-      }
-    }
-    loadArchive();
-  }, []);
-
   return (
     <>
-      <Header logoText="DREADBASE" navItems={TOP_NAV_ITEMS} searchPlaceholder="SCAN_FILES..." />
       <main className="w-full pt-16 min-h-screen overflow-x-hidden">
-        <DetailModal isOpen={!!selectedMedia} onClose={() => setSelectedMedia(null)} data={selectedMedia} />
-
-        <HeroSection heroMovie={heroMovie} stats={[{ label: "ARCHIVE_SYNC", value: "OK" }, { label: "WEEKLY_LOGS", value: "1.2K" }]} />
+        <Suspense fallback={<HeroSkeleton />}>
+          <HeroWrapper />
+        </Suspense>
 
         <section className="space-y-4">
-          <MediaCarousel title="POPULAR_THIS_WEEK" items={popularMovies.map(m => ({ ...m, onClick: () => setSelectedMedia(m) }))} />
+          <Suspense fallback={<SectionSkeleton />}>
+            <PopularWrapper />
+          </Suspense>
+          <Suspense fallback={<SectionSkeleton />}>
+            <TrendingWrapper />
+          </Suspense>
         </section>
 
         {/* 2nd Section: GameOfDay + Feed */}
         <section className="max-w-7xl mx-auto px-8 lg:px-16 py-12 grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <GameOfDay game={spotlightGame} />
+          <Suspense fallback={<GameOfDaySkeleton />}>
+            <SpotLightWrapper />
+          </Suspense>
           <div className="lg:col-span-1">
             <CommunityFeed feedTitle="ACCESS_FEED" buttonText="VIEW_LOGS" items={FEED_ITEMS} />
           </div>
         </section>
 
         <section className="space-y-4">
-          <MediaCarousel title="TRENDING_GAMES" items={trendingGames.map(g => ({ ...g, onClick: () => setSelectedMedia(g) }))} />
-          <MediaCarousel title="HIGHEST_RATED_GAMES" items={highestRatedGames.map(g => ({ ...g, onClick: () => setSelectedMedia(g) }))} />
-          <MediaCarousel title="CRITICAL_ACCLAIM_FILMS" items={topRatedMovies.map(m => ({ ...m, onClick: () => setSelectedMedia(m) }))} />
+          <Suspense fallback={<SectionSkeleton />}>
+            <HighestWrapper />
+          </Suspense>
+          <Suspense fallback={<SectionSkeleton />}>
+            <CriticalWrapper />
+          </Suspense>
         </section>
 
-        {/* RESTORED: 'Stitch' Full-Width Section */}
-        <section className="w-screen relative left-[50%] right-[50%] -ml-[50vw] -mr-[50vw] bg-[#0a0a0a] border-y border-secondary/20 py-24 mb-0">
-          <div className="max-w-7xl mx-auto px-8 lg:px-16">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-
-              {/* Banner Box 1: Trending */}
-              <div className="relative group cursor-pointer h-72 bg-gradient-to-br from-surface to-background border border-secondary/40 rounded-2xl overflow-hidden hover:border-primary transition-all duration-300 shadow-[0_0_20px_rgba(0,0,0,0.4)]">
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1549490349-8643362247b5')] bg-cover bg-center opacity-20 transition-transform duration-700 group-hover:scale-110 grayscale" />
-                <div className="absolute inset-0 p-10 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent">
-                  <span className="text-[0.6rem] font-black tracking-[0.5em] text-primary mb-3 block animate-pulse">ARCHIVE_ALERT</span>
-                  <h3 className="text-3xl font-black uppercase tracking-tighter mb-2">TRENDING_RIGHT_NOW</h3>
-                  <p className="text-[0.7rem] opacity-40 uppercase tracking-widest font-bold">Deep scanning trending archives...</p>
-                </div>
-                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-              </div>
-
-              {/* Banner Box 2: Community */}
-              <div className="relative group cursor-pointer h-72 bg-gradient-to-br from-surface to-background border border-secondary/40 rounded-2xl overflow-hidden hover:border-primary transition-all duration-300 shadow-[0_0_20px_rgba(0,0,0,0.4)]">
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1626814026160-2237a95fc5a0')] bg-cover bg-center opacity-20 transition-transform duration-700 group-hover:scale-110 grayscale" />
-                <div className="absolute inset-0 p-10 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent">
-                  <span className="text-[0.6rem] font-black tracking-[0.5em] text-primary mb-3 block">ACCESS_GRANTED</span>
-                  <h3 className="text-3xl font-black uppercase tracking-tighter mb-2">COMMUNITY_PICK</h3>
-                  <p className="text-[0.7rem] opacity-40 uppercase tracking-widest font-bold">Recommended by high-level operators</p>
-                </div>
-                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-              </div>
-
-            </div>
-          </div>
-        </section>
+        {/* RESTORED: 'Stitch' Full-Width Section using modular Component */}
+        <BannerSection />
 
         <footer className="w-full py-16 border-t border-secondary/10 bg-[#0a0a0a] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
           <div className="max-w-7xl mx-auto px-8 lg:px-16 flex flex-col md:flex-row justify-between items-center gap-10 text-[0.65rem] tracking-[0.25em] uppercase font-black text-foreground opacity-40">

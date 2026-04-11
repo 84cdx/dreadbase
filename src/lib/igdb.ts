@@ -51,6 +51,7 @@ async function getTwitchAccessToken(): Promise<string> {
 
 interface IGDBCover { url: string; }
 interface IGDBScreenshot { url: string; }
+interface IGDBGenre { name: string; }
 interface IGDBGame {
   id: number;
   name: string;
@@ -60,6 +61,7 @@ interface IGDBGame {
   total_rating?: number;
   total_rating_count?: number;
   first_release_date?: number;
+  genres?: IGDBGenre[];
 }
 
 export interface SpotlightGame {
@@ -84,13 +86,16 @@ function transformCoverUrl(url: string | undefined): string {
 }
 
 function mapIGDBGameToMediaCard(game: IGDBGame): MediaCardProps {
-  const year = game.first_release_date 
+  const year = game.first_release_date
     ? new Date(game.first_release_date * 1000).getFullYear().toString()
     : "UNKNOWN";
-  
+
+  const genresStr = game.genres?.map(g => g.name).filter(n => n !== "Horror" && n !== "Indie").slice(0, 2).join(" / ") || "GAME";
+
   return {
+    id: game.id.toString(),
     title: game.name,
-    subtitle: `${year} // HORROR`,
+    subtitle: `${year} // ${genresStr.toUpperCase()}`,
     imageUrl: transformCoverUrl(game.cover?.url),
     rating: game.total_rating ? game.total_rating / 20 : 0,
     description: game.summary,
@@ -122,11 +127,11 @@ function mapToSpotlightGame(game: IGDBGame): SpotlightGame {
 // PUBLIC SERVER ACTIONS (MUST BE ASYNC)
 // ==========================================
 
-export async function getGameById(id: number): Promise<SpotlightGame | null> {
+export async function getGameDetails(id: string): Promise<SpotlightGame | null> {
   try {
     const token = await getTwitchAccessToken();
     const body = `fields name, summary, cover.url, screenshots.url, total_rating, total_rating_count, first_release_date; where id = ${id}; limit 1;`;
-    
+
     const res = await fetch(IGDB_API_URL, {
       method: "POST",
       headers: {
@@ -149,8 +154,8 @@ export async function getGameById(id: number): Promise<SpotlightGame | null> {
 export async function getHorrorGames(): Promise<MediaCardProps[]> {
   try {
     const token = await getTwitchAccessToken();
-    const body = "fields name, summary, cover.url, total_rating, first_release_date, hypes, total_rating_count; where themes = (19) & first_release_date > 1577836800 & total_rating_count > 0; sort hypes desc; limit 15;";
-    
+    const body = "fields name, summary, cover.url, total_rating, first_release_date, hypes, total_rating_count, genres.name; where themes = (19) & first_release_date > 1577836800 & total_rating_count > 0; sort hypes desc; limit 15;";
+
     const res = await fetch(IGDB_API_URL, {
       method: "POST",
       headers: {
@@ -173,8 +178,8 @@ export async function getHorrorGames(): Promise<MediaCardProps[]> {
 export async function getHighestRatedGames(): Promise<MediaCardProps[]> {
   try {
     const token = await getTwitchAccessToken();
-    const body = "fields name, summary, cover.url, total_rating, first_release_date, total_rating_count; where themes = (19) & total_rating_count > 5 & total_rating != null; sort total_rating desc; limit 15;";
-    
+    const body = "fields name, summary, cover.url, total_rating, first_release_date, total_rating_count, genres.name; where themes = (19) & total_rating_count > 250 & total_rating > 80; sort total_rating desc; limit 15;";
+
     const res = await fetch(IGDB_API_URL, {
       method: "POST",
       headers: {
@@ -190,6 +195,58 @@ export async function getHighestRatedGames(): Promise<MediaCardProps[]> {
     return games.map(mapIGDBGameToMediaCard);
   } catch (e) {
     console.error("IGDB RATING FETCH ERROR:", e);
+    return [];
+  }
+}
+
+export async function getSimilarGames(id: string): Promise<MediaCardProps[]> {
+  try {
+    const token = await getTwitchAccessToken();
+    // Use a basic query to fetch other horror games to simulate similar content if similar_games array is hard to query quickly
+    const body = `fields name, summary, cover.url, total_rating, first_release_date, total_rating_count, genres.name; where themes = (19) & id != ${id} & total_rating_count > 10; sort hype desc; limit 10;`;
+    
+    const res = await fetch(IGDB_API_URL, {
+      method: "POST",
+      headers: {
+        "Client-ID": process.env.IGDB_CLIENT_ID!,
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "text/plain",
+      },
+      body,
+      next: { revalidate: 3600 },
+    });
+
+    const games = await res.json() as IGDBGame[];
+    return games.map(mapIGDBGameToMediaCard);
+  } catch (e) {
+    console.error("IGDB SIMILAR FETCH ERROR:", e);
+    return [];
+  }
+}
+
+export async function searchGames(query: string): Promise<MediaCardProps[]> {
+  if (!query) return [];
+  try {
+    const token = await getTwitchAccessToken();
+    const safeQuery = query.replace(/"/g, '');
+    const body = `search "${safeQuery}"; fields name, summary, cover.url, total_rating, first_release_date, total_rating_count, genres.name; where themes = (19); limit 5;`;
+    
+    const res = await fetch(IGDB_API_URL, {
+      method: "POST",
+      headers: {
+        "Client-ID": process.env.IGDB_CLIENT_ID!,
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "text/plain",
+      },
+      body,
+      // No caching for live search to ensure accurate client performance
+      cache: "no-store"
+    });
+
+    const games = await res.json() as IGDBGame[];
+    return games.map(mapIGDBGameToMediaCard);
+  } catch (e) {
+    console.error("IGDB SEARCH ERROR:", e);
     return [];
   }
 }

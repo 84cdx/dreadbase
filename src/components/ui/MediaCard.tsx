@@ -1,10 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { Star } from "lucide-react";
 
 export interface MediaCardProps {
+  id?: number | string;
   title: string;
-  subtitle: string;
+  subtitle: string; // Will act as year now if we pass it, or we extract. For backward compatibility, let's keep subtitle and add year/subgenres.
+  year?: string;
+  subgenres?: string;
   imageUrl: string;
   rating?: number;
   badge?: string;
@@ -14,8 +18,11 @@ export interface MediaCardProps {
 }
 
 export function MediaCard({
+  id,
   title,
   subtitle,
+  year,
+  subgenres,
   imageUrl,
   rating,
   badge,
@@ -25,7 +32,10 @@ export function MediaCard({
   // Ensure we don't pass empty string to src
   const hasImage = imageUrl && imageUrl.length > 0;
 
-  return (
+  const displayYear = year || subtitle.split(" // ")[0] || "";
+  const displayGenres = subgenres || subtitle.split(" // ")[1] || "";
+
+  const CardContent = (
     <div 
       className="group cursor-pointer flex flex-col h-full transition-all active:scale-95" 
       onClick={onClick}
@@ -56,24 +66,32 @@ export function MediaCard({
         </div>
       </div>
 
-      <div className="flex flex-col flex-1 transform transition-transform group-hover:translate-x-1">
-        <h3 className="text-[0.75rem] font-black leading-tight uppercase tracking-tighter mb-1 text-foreground">
+      <div className="flex flex-col flex-1 transform transition-transform group-hover:translate-x-1 pt-2">
+        <h3 className="text-[0.75rem] font-black leading-tight uppercase tracking-tighter mb-1 text-foreground line-clamp-2">
           {title}
         </h3>
         
-        <div className="flex items-center justify-between mt-auto">
-          <span className="text-[0.6rem] opacity-30 font-bold uppercase tracking-widest">
-            {subtitle}
+        <div className="flex flex-col mt-auto pt-1">
+          <div className="flex items-center justify-between mb-0.5">
+            <span className="text-[0.6rem] font-bold uppercase tracking-widest text-foreground/60">{displayYear}</span>
+            {rating !== undefined && rating > 0 && (
+              <div className="flex items-center gap-1">
+                <Star className="w-2.5 h-2.5 fill-primary text-primary" />
+                <span className="text-[0.65rem] font-black text-primary">{rating.toFixed(1)}</span>
+              </div>
+            )}
+          </div>
+          <span className="text-[0.55rem] opacity-30 font-bold uppercase tracking-widest line-clamp-1">
+            {displayGenres}
           </span>
-          
-          {rating !== undefined && rating > 0 && (
-            <div className="flex items-center gap-1">
-              <Star className="w-2.5 h-2.5 fill-primary text-primary" />
-              <span className="text-[0.65rem] font-black text-primary">{rating.toFixed(1)}</span>
-            </div>
-          )}
         </div>
       </div>
     </div>
   );
+
+  if (id) {
+    return <Link href={`/${variant}/${id}`} className="block h-full">{CardContent}</Link>;
+  }
+
+  return CardContent;
 }

@@ -7,6 +7,13 @@ const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 const TMDB_BACKDROP_BASE_URL = "https://image.tmdb.org/t/p/original";
 const HORROR_GENRE_ID = "27";
 
+const TMDB_GENRES: Record<number, string> = {
+  28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy", 80: "Crime", 
+  99: "Documentary", 18: "Drama", 10751: "Family", 14: "Fantasy", 36: "History", 
+  27: "Horror", 10402: "Music", 9648: "Mystery", 10749: "Romance", 878: "Sci-Fi", 
+  10770: "TV Movie", 53: "Thriller", 10752: "War", 37: "Western"
+};
+
 export interface TMDBMovie {
   id: number;
   title: string;
@@ -41,10 +48,12 @@ interface TMDBResponse {
 function mapTMDBMovieToMediaCard(movie: TMDBMovie): MediaCardProps {
   const year = movie.release_date ? movie.release_date.split("-")[0] : "UNKNOWN";
   const normalizedRating = movie.vote_average / 2;
+  const genres = movie.genre_ids?.map(id => TMDB_GENRES[id]).filter(g => g && g !== "Horror").slice(0, 2).join(" / ") || "FILM";
 
   return {
+    id: movie.id.toString(),
     title: movie.title,
-    subtitle: `${year} // HORROR`,
+    subtitle: `${year} // ${genres.toUpperCase()}`,
     imageUrl: movie.poster_path ? `${TMDB_IMAGE_BASE_URL}${movie.poster_path}` : "", // Returns empty string if no image available
     rating: normalizedRating,
     description: movie.overview,
@@ -103,18 +112,68 @@ export async function getTopRatedMovies(): Promise<MediaCardProps[]> {
   return (data?.results || []).map(mapTMDBMovieToMediaCard);
 }
 
-export async function getPopularHeroMovie(): Promise<HeroMovie | null> {
+export async function getPopularHeroMovies(limit = 5): Promise<HeroMovie[]> {
   const data = await fetchTMDB(`/discover/movie?with_genres=${HORROR_GENRE_ID}&sort_by=popularity.desc`);
-  const top = data?.results?.[0];
-  if (!top) return null;
+  const tops = data?.results?.slice(0, limit) || [];
+  
+  return tops.map(top => {
+    const year = top.release_date ? top.release_date.split("-")[0] : "UNKNOWN";
+    return {
+      id: top.id,
+      title: top.title,
+      overview: top.overview,
+      backdropUrl: top.backdrop_path ? `${TMDB_BACKDROP_BASE_URL}${top.backdrop_path}` : "",
+      rating: (top.vote_average / 2).toFixed(1),
+      year,
+    };
+  });
+}
 
-  const year = top.release_date ? top.release_date.split("-")[0] : "UNKNOWN";
+export interface MovieDetail {
+  id: number;
+  title: string;
+  overview: string;
+  backdropUrl: string;
+  posterUrl: string;
+  rating: number;
+  year: string;
+  genres: string[];
+}
+
+export async function getMovieDetails(id: string): Promise<MovieDetail | null> {
+  const data: any = await fetchTMDB(`/movie/${id}`);
+  if (!data || !data.id) return null;
+
+  const year = data.release_date ? data.release_date.split("-")[0] : "UNKNOWN";
   return {
-    id: top.id,
-    title: top.title,
-    overview: top.overview,
-    backdropUrl: top.backdrop_path ? `${TMDB_BACKDROP_BASE_URL}${top.backdrop_path}` : "",
-    rating: (top.vote_average / 2).toFixed(1),
+    id: data.id,
+    title: data.title,
+    overview: data.overview,
+    backdropUrl: data.backdrop_path ? `${TMDB_BACKDROP_BASE_URL}${data.backdrop_path}` : "",
+    posterUrl: data.poster_path ? `${TMDB_IMAGE_BASE_URL}${data.poster_path}` : "",
+    rating: data.vote_average ? data.vote_average / 2 : 0,
     year,
+    genres: (data.genres || []).map((g: any) => g.name),
   };
+}
+
+export async function getSimilarMovies(id: string): Promise<MediaCardProps[]> {
+  const data = await fetchTMDB(`/movie/${id}/similar`);
+  return (data?.results || []).slice(0, 10).map(mapTMDBMovieToMediaCard);
+}
+
+export async function searchMovies(query: string): Promise<MediaCardProps[]> {
+  if (!query) return [];
+  const safeQuery = encodeURIComponent(query);
+  const data = await fetchTMDB(`/search/movie?query=${safeQuery}`);
+  
+  if (!data?.results) return [];
+  
+  const nicheGenres = [27, 53, 9648, 878]; // Horror, Thriller, Mystery, Sci-Fi
+  const filtered = data.results.filter((m) => m.genre_ids?.some(id => nicheGenres.includes(id)));
+  
+  // If filtered is empty but we have results, return the unfiltered ones as fallback
+  const finalResults = filtered.length > 0 ? filtered : data.results;
+  
+  return finalResults.slice(0, 5).map(mapTMDBMovieToMediaCard);
 }
