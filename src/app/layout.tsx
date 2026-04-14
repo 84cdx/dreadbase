@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DREADBASE // CLASSIFIED MEDIA ARCHIVE",
+  title: "Dreadbase",
   description: "Secure database for horror-themed cinematic and interactive intelligence.",
 };
 
@@ -37,7 +37,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body 
+      <body
         className="min-h-screen flex flex-col bg-background text-foreground overflow-x-hidden"
         suppressHydrationWarning
       >
