@@ -74,6 +74,7 @@ export interface SpotlightGame {
   ratingLabel: string;
   year: string;
   releaseLabel: string;
+  genres?: string[];
 }
 
 // ==========================================
@@ -120,6 +121,7 @@ function mapToSpotlightGame(game: IGDBGame): SpotlightGame {
     ratingLabel: rating > 0 ? (rating / 10).toFixed(1) + " / 10" : "N/A",
     year,
     releaseLabel,
+    genres: (game.genres || []).map(g => g.name),
   };
 }
 
@@ -130,7 +132,7 @@ function mapToSpotlightGame(game: IGDBGame): SpotlightGame {
 export async function getGameDetails(id: string): Promise<SpotlightGame | null> {
   try {
     const token = await getTwitchAccessToken();
-    const body = `fields name, summary, cover.url, screenshots.url, total_rating, total_rating_count, first_release_date; where id = ${id}; limit 1;`;
+    const body = `fields name, summary, cover.url, screenshots.url, total_rating, total_rating_count, first_release_date, genres.name; where id = ${id}; limit 1;`;
 
     const res = await fetch(IGDB_API_URL, {
       method: "POST",

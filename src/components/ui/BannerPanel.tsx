@@ -12,7 +12,7 @@ export function BannerPanel({ bgUrl, badgeText, title, subtitle, pulseBadge = fa
   return (
     <div className="relative group cursor-pointer h-72 bg-gradient-to-br from-surface to-background border border-secondary/40 rounded-2xl overflow-hidden hover:border-primary transition-all duration-300 shadow-[0_0_20px_rgba(0,0,0,0.4)]">
       <div 
-        className="absolute inset-0 bg-cover bg-center opacity-20 transition-transform duration-700 group-hover:scale-110 grayscale"
+        className="absolute inset-0 bg-cover bg-center opacity-20 transition-transform duration-700 group-hover:scale-105 grayscale"
         style={{ backgroundImage: `url('${bgUrl}')` }}
       />
       <div className="absolute inset-0 p-10 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent">

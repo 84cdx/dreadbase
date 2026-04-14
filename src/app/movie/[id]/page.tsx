@@ -3,13 +3,16 @@ import { getMovieDetails, getSimilarMovies } from "@/lib/tmdb";
 import { MediaCarousel } from "@/components/sections/MediaCarousel";
 import { Star } from "lucide-react";
 import { SectionSkeleton } from "@/components/ui/Skeleton";
+import { VaultAction, VaultRatingBadge } from "@/components/ui/VaultAction";
+import { WatchlistAction } from "@/components/ui/WatchlistAction";
+import { createClient } from "@/utils/supabase/server";
 
 async function SimilarMoviesWrapper({ id }: { id: string }) {
   const similarMovies = await getSimilarMovies(id);
   if (!similarMovies || similarMovies.length === 0) return null;
   return (
     <section className="mt-24 space-y-4">
-       <MediaCarousel title="SIMILAR_CONTENT" items={similarMovies} />
+      <MediaCarousel title="SIMILAR CONTENT" items={similarMovies} />
     </section>
   );
 }
@@ -17,7 +20,42 @@ async function SimilarMoviesWrapper({ id }: { id: string }) {
 export default async function MovieDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const movie = await getMovieDetails(id);
-  
+
+  let isInVault = false;
+  let isInWatchlist = false;
+  let vaultRating = 0;
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+
+  if (userData?.user) {
+    // Check Vault
+    const { data: vaultData } = await supabase
+      .from("vault")
+      .select("media_id, rating")
+      .eq("user_id", userData.user.id)
+      .eq("media_id", id)
+      .eq("media_type", "movie")
+      .single();
+
+    if (vaultData) {
+      isInVault = true;
+      vaultRating = vaultData.rating ?? 0;
+    }
+
+    // Check Watchlist
+    const { data: watchlistData } = await supabase
+      .from("watchlist")
+      .select("media_id")
+      .eq("user_id", userData.user.id)
+      .eq("media_id", id)
+      .eq("media_type", "movie")
+      .single();
+
+    if (watchlistData) {
+      isInWatchlist = true;
+    }
+  }
+
   if (!movie) {
     return (
       <div className="bg-background min-h-screen text-center flex items-center justify-center">
@@ -36,8 +74,8 @@ export default async function MovieDetail({ params }: { params: Promise<{ id: st
             const hasHeroImage = heroImage.length > 0;
             return hasHeroImage ? (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img 
-                src={heroImage} 
+              <img
+                src={heroImage}
                 alt={movie.title}
                 className="absolute inset-0 w-full h-full object-cover opacity-60"
                 style={{ objectPosition: "center 20%" }}
@@ -67,7 +105,7 @@ export default async function MovieDetail({ params }: { params: Promise<{ id: st
                   <span className="text-xl font-bold opacity-30">//</span>
                   <span className="font-bold tracking-widest opacity-80">{movie.year}</span>
                 </div>
-                
+
                 <div className="flex flex-wrap gap-2 mb-6">
                   {movie.genres.map((g) => (
                     <span key={g} className="bg-surface border border-secondary px-3 py-1 rounded-full text-[0.6rem] uppercase tracking-widest font-black">
@@ -77,38 +115,66 @@ export default async function MovieDetail({ params }: { params: Promise<{ id: st
                 </div>
 
                 <div className="flex gap-4 mt-6">
-                   <button className="bg-primary text-primary-foreground py-3 px-8 rounded-xl text-xs font-black uppercase tracking-[0.2em] hover:bg-primary-hover active:scale-95 transition-all shadow-[0_0_20px_rgba(208,0,0,0.3)]">
-                     ADD TO VAULT
-                   </button>
-                   <button className="border border-secondary text-foreground py-3 px-8 rounded-xl text-xs font-black uppercase tracking-[0.2em] hover:bg-surface-hover active:scale-95 transition-all">
-                     ADD TO LIST
-                   </button>
+                  <VaultAction
+                    mediaId={String(movie.id)}
+                    mediaType="movie"
+                    title={movie.title}
+                    posterPath={movie.posterUrl || movie.backdropUrl || ""}
+                    isInVault={isInVault}
+                  />
+                  <WatchlistAction
+                    mediaId={String(movie.id)}
+                    mediaType="movie"
+                    title={movie.title}
+                    posterPath={movie.posterUrl || movie.backdropUrl || ""}
+                    isInWatchlist={isInWatchlist}
+                  />
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="max-w-7xl mx-auto px-8 lg:px-16 mt-12 grid grid-cols-1 md:grid-cols-3 gap-12">
+        <section className="max-w-7xl mx-auto px-6 md:px-8 lg:px-16 mt-12 grid grid-cols-1 md:grid-cols-3 gap-12">
           <div className="col-span-2">
             <h2 className="text-[0.65rem] font-black tracking-[0.3em] text-foreground opacity-30 mb-6 uppercase">RESTRICTED_SYNOPSIS</h2>
             <p className="text-base md:text-lg opacity-80 font-light leading-relaxed">
               {movie.overview || "No data available."}
             </p>
           </div>
-          <div className="col-span-1">
-            <h2 className="text-[0.65rem] font-black tracking-[0.3em] text-foreground opacity-30 mb-6 uppercase">ANALYTICS_INDEX</h2>
-            <div className="h-4 w-full bg-surface border border-secondary rounded-full overflow-hidden shadow-inner">
-               <div className="h-full bg-primary" style={{ width: `${(movie.rating / 5) * 100}%` }} />
-            </div>
-            <div className="mt-2 text-right text-[0.6rem] font-bold tracking-widest opacity-50">
-              {movie.rating.toFixed(1)} / 5.0
+          <div className="col-span-1 flex flex-col items-start md:items-end gap-8">
+            {/* ── Vault Rating Sektion ── only visible when archived */}
+            {isInVault && (
+              <div className="flex flex-col items-start md:items-end w-full">
+                <p className="text-[0.75rem] font-black uppercase tracking-[0.3em] text-foreground/40 mb-4">YOUR RATING</p>
+                <VaultRatingBadge
+                  rating={vaultRating}
+                  mediaId={String(movie.id)}
+                  mediaType="movie"
+                  title={movie.title}
+                  posterPath={movie.posterUrl || movie.backdropUrl || ""}
+                />
+              </div>
+            )}
+
+            {/* Separator — only if in vault to separate sections */}
+            {isInVault && <div className="h-px w-full bg-neutral-800/60" />}
+
+            {/* Analytics Section */}
+            <div className="w-full flex flex-col items-start md:items-end">
+              <h2 className="text-[0.65rem] font-black tracking-[0.3em] text-foreground opacity-30 mb-6 uppercase">ANALYTICS_INDEX</h2>
+              <div className="h-4 w-full bg-surface border border-secondary rounded-full overflow-hidden shadow-inner">
+                <div className="h-full bg-primary" style={{ width: `${(movie.rating / 5) * 100}%` }} />
+              </div>
+              <div className="mt-2 text-[0.6rem] font-bold tracking-widest opacity-50">
+                {movie.rating.toFixed(1)} / 5.0
+              </div>
             </div>
           </div>
         </section>
 
         <Suspense fallback={<SectionSkeleton />}>
-           <SimilarMoviesWrapper id={id} />
+          <SimilarMoviesWrapper id={id} />
         </Suspense>
       </main>
     </div>

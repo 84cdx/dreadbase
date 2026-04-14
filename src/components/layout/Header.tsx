@@ -3,18 +3,18 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, User, Menu, X, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { searchMovies } from "@/lib/tmdb";
 import { searchGames } from "@/lib/igdb";
 import { MediaCardProps } from "@/components/ui/MediaCard";
 import { createClient } from "@/utils/supabase/client";
-import { signInWithGoogle, signOut } from "@/app/auth/actions";
+import { signOut } from "@/app/auth/actions";
+import { LoginModal } from "@/components/auth/LoginModal";
 
 export interface TopNavItem {
   id: string;
   label: string;
   href: string;
-  isActive?: boolean;
 }
 
 export interface HeaderProps {
@@ -25,6 +25,7 @@ export interface HeaderProps {
 
 export function Header({ logoText, navItems, searchPlaceholder }: HeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -32,14 +33,17 @@ export function Header({ logoText, navItems, searchPlaceholder }: HeaderProps) {
   const [results, setResults] = useState<{ movies: MediaCardProps[], games: MediaCardProps[] }>({ movies: [], games: [] });
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   const handleLogout = async () => {
     setIsUserMenuOpen(false);
     await signOut();
-    window.location.href = '/';
+    // Hard reset: Force a full reload on the current path to clear all auth states
+    window.location.href = window.location.pathname;
   };
 
   // Close user dropdown on click outside
@@ -53,31 +57,38 @@ export function Header({ logoText, navItems, searchPlaceholder }: HeaderProps) {
     return () => document.removeEventListener("mousedown", clickHandler);
   }, []);
 
-  // Fetch Session from Supabase SSR
+  // Fetch Session from Supabase SSR and handle Auth State changes
   useEffect(() => {
-    const fetchUser = async () => {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
+    const supabase = createClient();
+    
+    // Initial fetch
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUser(session?.user ?? null);
       if (session?.user?.user_metadata?.avatar_url) {
         setUserAvatar(session.user.user_metadata.avatar_url);
       }
+    });
 
-      const { data: authListener } = supabase.auth.onAuthStateChange(
-        (event, session) => {
-          if (session?.user?.user_metadata?.avatar_url) {
-            setUserAvatar(session.user.user_metadata.avatar_url);
-          } else {
-            setUserAvatar(null);
-          }
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        const user = session?.user ?? null;
+        setCurrentUser(user);
+        
+        if (event === "SIGNED_OUT") {
+          setUserAvatar(null);
+          setIsUserMenuOpen(false);
+          setResults({ movies: [], games: [] });
+        } else if (user?.user_metadata?.avatar_url) {
+          setUserAvatar(user.user_metadata.avatar_url);
+        } else {
+          setUserAvatar(null);
         }
-      );
+      }
+    );
 
-      return () => {
-        authListener.subscription.unsubscribe();
-      };
+    return () => {
+      authListener.subscription.unsubscribe();
     };
-
-    fetchUser();
   }, []);
 
   // Reset selected index when results or search open state change
@@ -159,7 +170,7 @@ export function Header({ logoText, navItems, searchPlaceholder }: HeaderProps) {
 
   return (
     <>
-      <header className="bg-background/95 backdrop-blur-md text-primary font-['Inter'] uppercase tracking-[0.1em] text-[0.6875rem] top-0 w-full border-b border-secondary flex justify-between items-center px-4 md:px-6 h-16 fixed z-[60] shadow-sm">
+      <header className="bg-background/95 backdrop-blur-md text-primary font-['Inter'] uppercase tracking-[0.1em] text-[0.6875rem] top-0 w-full border-b border-secondary flex justify-between items-center px-4 md:px-6 h-16 fixed z-[100] shadow-sm">
 
         {/* Left: Brand & Nav */}
         <div className="flex items-center gap-8">
@@ -169,15 +180,18 @@ export function Header({ logoText, navItems, searchPlaceholder }: HeaderProps) {
             </div>
           </Link>
           <nav className="hidden md:flex gap-6 items-center border-l border-secondary pl-8 h-8">
-            {navItems.map((item) => (
-              <Link
-                key={item.id}
-                className={`px-3 py-1 transition-all hover:text-primary ${item.isActive ? "text-primary font-black" : "text-foreground opacity-50 font-bold"}`}
-                href={item.href}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.id}
+                  className={`px-3 py-1 transition-all hover:text-primary ${isActive ? "text-primary font-black drop-shadow-[0_0_8px_rgba(208,0,0,0.5)]" : "text-foreground opacity-50 font-bold"}`}
+                  href={item.href}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
 
@@ -200,7 +214,7 @@ export function Header({ logoText, navItems, searchPlaceholder }: HeaderProps) {
 
             {/* Absolute Dropdown Results */}
             {isSearchFocused && (
-              <div className="absolute top-full mt-2 left-0 right-0 bg-surface border border-secondary rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-[70] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="absolute top-full mt-2 left-0 right-0 bg-surface border border-secondary rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-[110] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="p-4 border-b border-secondary/20 bg-background/20 font-black text-[0.55rem] tracking-[0.2em] text-primary flex items-center justify-between">
                   <span>SCAN_LOG_V.01</span>
                   {isLoading ? (
@@ -270,23 +284,23 @@ export function Header({ logoText, navItems, searchPlaceholder }: HeaderProps) {
           </div>
 
           {/* Account Dropdown */}
-          <div ref={userMenuRef} className="relative hidden md:block">
-            {userAvatar ? (
+          <div ref={userMenuRef} className="relative">
+            {currentUser ? (
               <div
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex w-9 h-9 items-center justify-center rounded-full hover:ring-1 hover:ring-primary transition-all cursor-pointer overflow-hidden p-[2px]"
+                className="flex w-9 h-9 items-center justify-center rounded-full hover:ring-1 hover:ring-primary transition-all overflow-hidden p-[2px] cursor-pointer"
               >
-                <img src={userAvatar} alt="Profile" className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
+                <img src={userAvatar || ""} alt="Profile" className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
               </div>
             ) : (
-              <button onClick={() => signInWithGoogle()} className="flex p-2 rounded-full transition-all text-foreground opacity-50 hover:text-primary hover:opacity-100 outline-none">
+              <button onClick={() => setIsLoginOpen(true)} className="flex p-2 rounded-full transition-all text-foreground opacity-50 hover:text-primary hover:opacity-100 outline-none cursor-pointer">
                 <User className="w-5 h-5" />
               </button>
             )}
 
             {/* Dropdown Menu */}
-            {userAvatar && isUserMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-surface border border-secondary shadow-xl rounded-lg z-[80] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+            {currentUser && isUserMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-surface border border-secondary shadow-xl rounded-lg z-[110] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="flex flex-col">
                   <Link
                     href="/account"
@@ -307,11 +321,37 @@ export function Header({ logoText, navItems, searchPlaceholder }: HeaderProps) {
             )}
           </div>
 
-          <button className="md:hidden p-2 text-foreground hover:bg-secondary rounded-lg" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+          <button className="md:hidden p-2 text-foreground hover:bg-secondary rounded-lg z-[110]" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
+
+        {/* Mobile Menu Overlay */}
+        {isMobileMenuOpen && (
+          <div className="fixed top-16 left-0 w-full bg-black/98 backdrop-blur-lg z-[90] md:hidden border-b border-neutral-800 shadow-[0_20px_50px_rgba(0,0,0,0.9)] animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex flex-col p-4 py-8">
+              <div className="text-[0.55rem] font-black text-primary/40 tracking-[0.3em] uppercase mb-6 px-4">SYSTEM_NAVIGATION</div>
+              <div className="flex flex-col border-t border-neutral-800">
+                {navItems.map((item, index) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={`py-6 px-4 text-xl font-black tracking-[0.2em] uppercase transition-all flex items-center justify-between group border-b border-neutral-800 last:border-0 ${isActive ? "text-primary" : "text-foreground opacity-70"}`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </header>
+
+      {isLoginOpen && <LoginModal onClose={() => setIsLoginOpen(false)} />}
     </>
   );
 }
