@@ -24,7 +24,7 @@ function GridSkeleton() {
 
 function Pagination({ currentPage, totalPages }: { currentPage: number, totalPages: number }) {
   if (totalPages <= 1) return null;
-  
+
   const createPageUrl = (pageNumber: number) => {
     return `/mylist?page=${pageNumber}`;
   };
@@ -32,7 +32,7 @@ function Pagination({ currentPage, totalPages }: { currentPage: number, totalPag
   return (
     <div className="flex justify-center items-center gap-6 mt-24">
       {currentPage > 1 ? (
-        <Link 
+        <Link
           href={createPageUrl(currentPage - 1)}
           className="p-1 border border-secondary text-foreground/40 hover:bg-secondary/20 hover:border-white/70 hover:text-white/70 transition-all rounded-full flex items-center justify-center"
         >
@@ -41,12 +41,12 @@ function Pagination({ currentPage, totalPages }: { currentPage: number, totalPag
       ) : (
         <div className="w-11 h-11" />
       )}
-      
+
       <div className="flex gap-3">
         {Array.from({ length: totalPages }).map((_, i) => {
           const page = i + 1;
           const isActive = page === currentPage;
-          
+
           if (totalPages > 10) {
             if (page !== 1 && page !== totalPages && Math.abs(page - currentPage) > 2) {
               if (Math.abs(page - currentPage) === 3) return <span key={page} className="text-secondary/40 self-center">...</span>;
@@ -55,12 +55,12 @@ function Pagination({ currentPage, totalPages }: { currentPage: number, totalPag
           }
 
           return (
-            <Link 
-              key={page} 
+            <Link
+              key={page}
               href={createPageUrl(page)}
               className={`w-11 h-11 flex items-center justify-center border transition-all rounded-xl text-xs font-black
-                ${isActive 
-                  ? 'bg-primary border-primary text-primary-foreground shadow-[0_0_20px_rgba(208,0,0,0.4)]' 
+                ${isActive
+                  ? 'bg-primary border-primary text-primary-foreground shadow-[0_0_20px_rgba(208,0,0,0.4)]'
                   : 'border-secondary text-foreground/40 hover:bg-secondary/20 hover:border-white/70 hover:text-white/70'
                 }`}
             >
@@ -71,7 +71,7 @@ function Pagination({ currentPage, totalPages }: { currentPage: number, totalPag
       </div>
 
       {currentPage < totalPages ? (
-        <Link 
+        <Link
           href={createPageUrl(currentPage + 1)}
           className="p-1 border border-secondary text-foreground/40 hover:bg-secondary/20 hover:border-white/70 hover:text-white/70 transition-all rounded-full flex items-center justify-center"
         >
@@ -96,7 +96,7 @@ async function WatchlistGrid({ data }: { data: any[] }) {
         id: details.id,
         title: details.title,
         year: details.year,
-        subgenres: details.genres.filter(g => g !== 'Horror').slice(0,2).join(' / '),
+        subgenres: details.genres.filter(g => g !== 'Horror').slice(0, 2).join(' / '),
         imageUrl: details.posterUrl || item.poster_path,
         rating: details.rating,
         variant: 'movie' as const
@@ -108,7 +108,7 @@ async function WatchlistGrid({ data }: { data: any[] }) {
         id: details.id,
         title: details.name,
         year: details.year,
-        subgenres: details.genres?.filter(g => g !== 'Horror').slice(0,2).join(' / '),
+        subgenres: details.genres?.filter(g => g !== 'Horror').slice(0, 2).join(' / '),
         imageUrl: details.coverUrl || item.poster_path,
         rating: details.rating / 20, // IGDB is 100-based, map to 5
         variant: 'game' as const
@@ -121,8 +121,8 @@ async function WatchlistGrid({ data }: { data: any[] }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-x-4 md:gap-x-6 gap-y-10">
       {validItems.map(item => (
-        <MediaCard 
-          key={item.id} 
+        <MediaCard
+          key={item.id}
           id={item.id}
           variant={item.variant}
           cardStyle="default"
@@ -150,8 +150,8 @@ export default async function MyListPage(props: { searchParams: SearchParams }) 
 
   if (!user) {
     return (
-      <GuestAccessView 
-        title="ACCESS DENIED" 
+      <GuestAccessView
+        title="ACCESS DENIED"
         subtitle="AUTHORIZATION REQUIRED. PLEASE INITIALIZE CONNECTION TO ACCESS YOUR PERSONAL WATCHLIST."
       />
     );
@@ -170,14 +170,14 @@ export default async function MyListPage(props: { searchParams: SearchParams }) 
   const gamesOnPage = gameRes.data || [];
   const movieCount = movieRes.count || 0;
   const gameCount = gameRes.count || 0;
-  
+
   const totalEntries = movieCount + gameCount;
 
   if (totalEntries === 0) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(208,0,0,0.05)_0%,rgba(0,0,0,1)_70%)]" />
-        
+
         <div className="relative z-10 max-w-2xl px-6 py-16 border-y border-secondary/30">
           <h1 className="text-primary font-black uppercase tracking-[0.3em] text-sm md:text-base mb-6 animate-pulse">
             SYSTEM STATUS: LIST_EMPTY
@@ -187,8 +187,8 @@ export default async function MyListPage(props: { searchParams: SearchParams }) 
             ADD_CONTENT TO MONITOR<br />
             <span className="text-primary/80">THE UNKNOWN.</span>
           </p>
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="inline-block px-10 py-5 bg-primary/10 border border-primary text-primary font-black text-xs uppercase tracking-[0.3em] hover:bg-primary hover:text-primary-foreground transition-all duration-300 rounded-lg backdrop-blur-md"
           >
             DISCOVER CONTENT
@@ -217,17 +217,17 @@ export default async function MyListPage(props: { searchParams: SearchParams }) 
       </header>
 
       <div className="max-w-[1400px] mx-auto px-6 md:px-12 py-8 space-y-12 md:space-y-16">
-        
+
         {moviesOnPage.length === 0 && gamesOnPage.length === 0 ? (
           <div className="py-32 flex flex-col items-center justify-center text-center opacity-40">
-             <span className="text-4xl font-black mb-4 tracking-tighter italic text-red-900">/ NO_DATA /</span>
-             <h2 className="text-2xl font-black uppercase tracking-widest text-secondary-foreground">NO ENTRIES ON THIS LEVEL</h2>
+            <span className="text-4xl font-black mb-4 tracking-tighter italic text-red-900">/ NO_DATA /</span>
+            <h2 className="text-2xl font-black uppercase tracking-widest text-secondary-foreground">NO ENTRIES ON THIS LEVEL</h2>
           </div>
         ) : (
           <>
             {moviesOnPage.length > 0 && (
               <section>
-                <div className="flex items-end gap-4 mb-8 border-b border-primary/20 pb-4">
+                <div className="flex items-end gap-4 mb-8 border-b border-secondary/50 pb-4">
                   <h2 className="text-2xl md:text-4xl font-black text-primary uppercase tracking-[0.15em]">MOVIES</h2>
                   <span className="text-[0.65rem] md:text-xs text-foreground/40 font-bold tracking-[0.3em] uppercase pb-1 md:pb-2">WATCHLIST</span>
                 </div>
@@ -239,7 +239,7 @@ export default async function MyListPage(props: { searchParams: SearchParams }) 
 
             {gamesOnPage.length > 0 && (
               <section>
-                <div className="flex items-end gap-4 mb-8 border-b border-primary/20 pb-4">
+                <div className="flex items-end gap-4 mb-8 border-b border-secondary/50 pb-4">
                   <h2 className="text-2xl md:text-4xl font-black text-primary uppercase tracking-[0.15em]">GAMES</h2>
                   <span className="text-[0.65rem] md:text-xs text-foreground/40 font-bold tracking-[0.3em] uppercase pb-1 md:pb-2">PLAYLIST</span>
                 </div>

@@ -124,8 +124,8 @@ export default async function VaultPage(props: { searchParams: SearchParams }) {
 
   if (!user) {
     return (
-      <GuestAccessView 
-        title="ACCESS DENIED" 
+      <GuestAccessView
+        title="ACCESS DENIED"
         subtitle="AUTHORIZATION REQUIRED. YOU MUST CONNECT TO THE DREADBASE TO MANAGE YOUR PERSONAL ARCHIVE."
       />
     );
@@ -205,7 +205,7 @@ export default async function VaultPage(props: { searchParams: SearchParams }) {
             {/* MOVIES SECTION */}
             {moviesOnPage.length > 0 && (
               <section id="movies-section">
-                <div className="flex items-end gap-4 mb-8 border-b border-primary/20 pb-4">
+                <div className="flex items-end gap-4 mb-8 border-b border-secondary/50 pb-4">
                   <h2 className="text-2xl md:text-4xl font-black text-primary uppercase tracking-[0.15em] drop-shadow-[0_0_15px_rgba(208,0,0,0.4)]">
                     MOVIES
                   </h2>
@@ -220,7 +220,7 @@ export default async function VaultPage(props: { searchParams: SearchParams }) {
             {/* GAMES SECTION */}
             {gamesOnPage.length > 0 && (
               <section id="games-section">
-                <div className="flex items-end gap-4 mb-8 border-b border-primary/20 pb-4">
+                <div className="flex items-end gap-4 mb-8 border-b border-secondary/50 pb-4">
                   <h2 className="text-2xl md:text-4xl font-black text-primary uppercase tracking-[0.15em] drop-shadow-[0_0_15px_rgba(208,0,0,0.4)]">
                     GAMES
                   </h2>

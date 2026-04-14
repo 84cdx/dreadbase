@@ -21,10 +21,10 @@ import { Header, TopNavItem } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 
 const TOP_NAV_ITEMS: TopNavItem[] = [
-  { id: "home", label: "HOME", href: "/", isActive: true },
-  { id: "vault", label: "VAULT", href: "/vault", isActive: false },
-  { id: "mylist", label: "MY LIST", href: "/mylist", isActive: false },
-  { id: "social", label: "SOCIAL", href: "/social", isActive: false },
+  { id: "home", label: "HOME", href: "/" },
+  { id: "vault", label: "VAULT", href: "/vault" },
+  { id: "mylist", label: "MY LIST", href: "/mylist" },
+  { id: "social", label: "SOCIAL", href: "/social" },
 ];
 
 export default function RootLayout({

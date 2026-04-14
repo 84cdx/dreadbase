@@ -15,6 +15,7 @@ export interface TopNavItem {
   id: string;
   label: string;
   href: string;
+  isActive?: boolean;
 }
 
 export interface HeaderProps {
@@ -181,7 +182,7 @@ export function Header({ logoText, navItems, searchPlaceholder }: HeaderProps) {
           </Link>
           <nav className="hidden md:flex gap-6 items-center border-l border-secondary pl-8 h-8">
             {navItems.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || item.isActive;
               return (
                 <Link
                   key={item.id}
@@ -333,7 +334,7 @@ export function Header({ logoText, navItems, searchPlaceholder }: HeaderProps) {
               <div className="text-[0.55rem] font-black text-primary/40 tracking-[0.3em] uppercase mb-6 px-4">SYSTEM_NAVIGATION</div>
               <div className="flex flex-col border-t border-neutral-800">
                 {navItems.map((item, index) => {
-                  const isActive = pathname === item.href;
+                  const isActive = pathname === item.href || item.isActive;
                   return (
                     <Link
                       key={item.id}
