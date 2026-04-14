@@ -11,38 +11,44 @@ interface NewsCardProps {
 
 function NewsCard({ imageUrl, headline, teaser, link }: NewsCardProps) {
   return (
-    <div className="relative h-64 md:h-72 border border-neutral-800 rounded-xl overflow-hidden group hover:border-primary/50 transition-all duration-500 bg-black">
-      {/* Background Image Layer */}
-      <div className="absolute inset-0 z-0">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={imageUrl}
-          alt={headline}
-          className="w-full h-full object-cover grayscale brightness-[0.15] transition-all duration-700 group-hover:brightness-[0.2] group-hover:scale-110"
-        />
-        {/* Vignette Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
-      </div>
+    <Link
+      href={link}
+      className="block group outline-none focus:ring-0 no-underline"
+    >
+      <div className="relative h-64 md:h-72 border border-neutral-800 rounded-xl overflow-hidden transition-all duration-500 bg-black cursor-pointer group-hover:border-neutral-700 group-hover:scale-[1.01] group-focus:border-primary/40 group-focus:ring-1 group-focus:ring-primary/20">
+        {/* Background Image Layer */}
+        <div className="absolute inset-0 z-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imageUrl}
+            alt={headline}
+            className="w-full h-full object-cover grayscale brightness-[0.2] transition-all duration-700 group-hover:brightness-[0.28] group-hover:scale-105"
+          />
+          {/* Vignette Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent opacity-90" />
+        </div>
 
-      {/* Content Overlay Layer */}
-      <div className="relative z-10 p-6 h-full flex flex-col justify-end">
-        <div className="transform transition-transform duration-500 group-hover:-translate-y-2">
-          <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter mb-2 leading-tight drop-shadow-lg">
-            {headline}
-          </h3>
-          <p className="text-[0.65rem] md:text-xs text-foreground/60 uppercase tracking-[0.25em] font-bold leading-relaxed mb-6 max-w-[90%] drop-shadow-md">
-            {teaser}
-          </p>
+        {/* Content Overlay Layer */}
+        <div className="relative z-10 p-6 h-full flex flex-col justify-end">
+          {/* Status Label - Top Right */}
+          <div className="absolute top-4 right-4 px-3 py-1 bg-black/60 border border-primary/40 rounded-lg text-[0.6rem] font-mono font-bold tracking-[0.2em] text-primary group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-all duration-200 uppercase z-20">
+            OPEN_FILE
+          </div>
 
-          <Link
-            href={link}
-            className="inline-block py-2.5 px-6 bg-transparent border border-neutral-700 text-foreground/40 font-black text-[0.55rem] uppercase tracking-[0.3em] hover:text-white hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 rounded-lg backdrop-blur-sm"
-          >
-            READ FULL REPORT
-          </Link>
+          <div className="transform transition-transform duration-500 group-hover:-translate-y-1">
+            <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter mb-2 leading-tight group-hover:text-white/80 transition-colors">
+              {headline}
+            </h3>
+            <p className="text-[0.65rem] md:text-xs text-foreground/50 uppercase tracking-[0.25em] font-bold leading-relaxed max-w-[85%] flex items-center">
+              {teaser.replace(/ >>$/, "")}
+              <span className="inline-block ml-2 text-5xl text-white/30 group-hover:text-primary group-hover:translate-x-1.5 transition-transform-colors duration-300">
+                &raquo;
+              </span>
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -63,14 +69,14 @@ export function IntelligenceSection() {
             imageUrl="/images/Foto_1.webp"
             headline="SCARY MOVIE 6 // TRAILER"
             teaser="Watch the first classified footage of the upcoming franchise reboot."
-            link="#"
+            link="/news/scary-movie"
           />
 
           <NewsCard
             imageUrl="/images/manga.webp"
             headline="MANGA EXPANSION"
             teaser="Integrating dark literature and manga databases into the ecosystem soon."
-            link="#"
+            link="/news/manga-expansion"
           />
         </div>
       </div>
