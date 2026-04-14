@@ -130,7 +130,7 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
           )}
 
           {/* Recommended Section */}
-          <section className="pt-20 space-y-8">
+          <section className="pt-8 space-y-8">
             <div className="flex items-center justify-between border-b border-secondary pb-4">
               <h2 className="text-xl font-black text-white uppercase tracking-tighter">
                 OTHER REPORTS
