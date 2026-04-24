@@ -4,12 +4,16 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+const getURL = () => {
+  let url = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_VERCEL_URL ?? 'http://localhost:3000';
+  url = url.includes('http') ? url : `https://${url}`;
+  return url.replace(/\/$/, '');
+}
 
 export async function signInWithGoogle(next: string = '/') {
   const supabase = await createClient()
 
-  const redirectTo = `${SITE_URL}/auth/callback?next=${encodeURIComponent(next)}`
+  const redirectTo = `${getURL()}/auth/callback?next=${encodeURIComponent(next)}`
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -29,7 +33,7 @@ export async function signInWithGoogle(next: string = '/') {
 export async function signInWithEmail(email: string, next: string = '/'): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient()
 
-  const emailRedirectTo = `${SITE_URL}/auth/callback?next=${encodeURIComponent(next)}`
+  const emailRedirectTo = `${getURL()}/auth/callback?next=${encodeURIComponent(next)}`
 
   const { error } = await supabase.auth.signInWithOtp({
     email,
