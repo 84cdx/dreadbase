@@ -2,7 +2,7 @@
 
 > A high-performance, dark-minimalist media dossier (in the style of Letterboxd & Hacker Terminals) for movies, video games, and log reports.
 
-![Dreadbase Dashboard Screenshot](./public/image/Screenshot_531.png)
+![Dreadbase Dashboard Screenshot](./public/images/Screenshot_531.png)
 
 DREADBASE is an immersive archival system built for performance, modern architecture, and an uncompromising design featuring Cyberpunk/Noir aesthetics.
 
@@ -30,7 +30,7 @@ DREADBASE is an immersive archival system built for performance, modern architec
     *   Maximized performance using Next.js Suspense and Skeletons for incremental streaming of page sections.
     *   Automated Hero Banner Carousel (10s interval) with a synchronized global progress bar in the navigation.
 
-    ![Dreadbase Vault Screenshot](./public/image/Screenshot_532.png)
+    ![Dreadbase Vault Screenshot](./public/images/Screenshot_532.png)
 
 ## 🛠️ Solved Engineering Challenges
 
