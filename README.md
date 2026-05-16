@@ -1,6 +1,6 @@
 # DREADBASE 🌑
 
-> A high-performance, dark-minimalist media dossier (in the style of Letterboxd & Hacker Terminals) for movies, video games, and log reports.
+A high-performance, dark-minimalist media dossier (in the style of Letterboxd & Hacker Terminals) for movies, video games, and log reports.
 
 ![Dreadbase Dashboard Screenshot](./public/images/Screenshot_531.png)
 
