@@ -32,7 +32,7 @@ DREADBASE is an immersive archival system built for performance, modern architec
 
     ![Dreadbase Vault Screenshot](./public/images/Screenshot_532.png)
 
-## 🛠️ Solved Engineering Challenges
+## 🛠️ Solved Engineering Challenges 
 
 *   **UX/UI Refinement & Design Consistency:**
     *   Mobile-first usability improved by transforming rigid elements into clickable teaser panels with larger hit areas.
